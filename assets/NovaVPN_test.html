@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NovaVPN</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070c14;color:#edf4ff;font-family:Arial,sans-serif}.app{max-width:430px;min-height:100vh;margin:auto;padding:18px;background:linear-gradient(180deg,#101a29,#070c14)}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.logo{font-size:25px;font-weight:800}.logo span{color:#55aaff}select{background:#172337;color:#fff;border:1px solid #2b3d59;border-radius:10px;padding:8px}
+.tabs{display:flex;gap:4px;background:#121d2d;padding:4px;border-radius:14px;margin-bottom:18px}.tab{flex:1;border:0;border-radius:10px;padding:11px;background:transparent;color:#91a0b8}.tab.active{background:#263b58;color:white}.page{display:none}.page.active{display:block}
+.card{background:#111d2e;border:1px solid #263953;border-radius:20px;padding:19px;margin-bottom:14px}.center{text-align:center}.shield{font-size:64px;margin:5px}.state{font-size:20px;font-weight:800}.muted{color:#91a0b8}.server{width:100%;display:flex;justify-content:space-between;padding:14px;margin:8px 0;background:#172438;color:#fff;border:1px solid #2a3c57;border-radius:13px}.server.selected{border-color:#55aaff;background:#1b3049}.connect{width:100%;padding:16px;border:0;border-radius:15px;background:#55aaff;color:#06101a;font-size:17px;font-weight:800;margin-top:10px}.stats{display:flex;gap:9px;margin-top:13px}.stat{flex:1;background:#172438;border-radius:12px;padding:11px;text-align:center}.stat b{display:block;margin-top:5px}.badge{display:inline-block;background:#163b2a;color:#6be7a5;border-radius:9px;padding:7px 10px;font-weight:700}.plan{display:flex;align-items:center;justify-content:space-between;background:#172438;border-radius:13px;padding:14px;margin:9px 0}.buy{border:0;background:#55aaff;border-radius:10px;padding:9px 12px;font-weight:700;color:#06101a}
+.input{width:100%;padding:12px;background:#172438;color:#fff;border:1px solid #2a3c57;border-radius:10px;font-size:15px;margin:8px 0}
+.msg{margin-top:10px;padding:10px;border-radius:10px;font-size:14px;display:none}
+.msg.ok{background:#163b2a;color:#6be7a5;display:block}
+.msg.err{background:#3b1616;color:#e76b6b;display:block}
+</style></head><body><div class="app">
+<header><div class="logo">Nova<span>VPN</span></div><select><option>🇷🇺 Русский</option><option>🇬🇧 English</option></select></header>
+<div class="tabs"><button class="tab active" onclick="tab('vpn',this)">VPN</button><button class="tab" onclick="tab('sub',this)">💳 Подписка</button></div>
+
+<section id="vpn" class="page active">
+<div class="card center"><div class="shield" id="shield">🛡️</div><div class="state" id="state">Не подключено</div><div class="muted" id="chosen">🇳🇱 Амстердам · 32 ms</div></div>
+<div class="card">
+<div class="muted">Telegram ID</div>
+<input class="input" type="text" id="tgId" placeholder="Введите ваш Telegram ID" inputmode="numeric">
+<button class="buy" style="width:100%;margin-top:4px" onclick="saveTgId()">Сохранить ID</button>
+<div class="msg" id="msgId"></div>
+<div class="muted" style="margin-top:14px">Выберите сервер</div>
+<button class="server selected" onclick="pick(this,'🇳🇱 Амстердам · 32 ms')"><span>🇳🇱 Амстердам</span><b>32 ms</b></button>
+<button class="server" onclick="pick(this,'🇷🇺 Санкт-Петербург · 28 ms')"><span>🇷🇺 Санкт-Петербург</span><b>28 ms</b></button>
+<button class="connect" id="connect" onclick="toggle()">ПОДКЛЮЧИТЬ</button>
+<div class="stats"><div class="stat">Время<b id="time">00:00:00</b></div><div class="stat">Трафик<b id="traffic">0 MB</b></div></div>
+<div class="msg" id="msgVpn"></div>
+</div>
+</section>
+
+<section id="sub" class="page">
+<div class="card"><h2>Подписка</h2><span class="badge">АКТИВНА</span><h1>10 дней</h1><div class="muted">Действует до 18.10.2026</div></div>
+<div class="card"><h2>Продлить</h2>
+<div class="plan"><span>1 месяц<br><b>200 ⭐</b></span><button class="buy" onclick="pay()">Оплатить</button></div>
+<div class="plan"><span>3 месяца<br><b>550 ⭐</b></span><button class="buy" onclick="pay()">Оплатить</button></div>
+<div class="plan"><span>12 месяцев<br><b>1800 ⭐</b></span><button class="buy" onclick="pay()">Оплатить</button></div>
+</div>
+</section>
+
+</div>
+<script>
+let connected=false,seconds=0,mb=0,timer=null;
+
+function bridge(action, data){
+    const payload = JSON.stringify(Object.assign({action: action}, data||{}));
+    if(window.AndroidBridge){ AndroidBridge.postMessage(payload); }
+    else { console.log('BRIDGE (browser):', payload); }
+}
+
+function tab(id,b){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+}
+
+function pick(b,n){
+    document.querySelectorAll('.server').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+    document.getElementById('chosen').textContent=n;
+}
+
+function saveTgId(){
+    const tg = document.getElementById('tgId').value.trim();
+    const msg = document.getElementById('msgId');
+    if(!tg){ msg.className='msg err'; msg.textContent='Введите ID'; return; }
+    bridge('saveTgId', {tg_id: tg});
+    msg.className='msg ok'; msg.textContent='ID сохранён: '+tg;
+}
+
+function toggle(){
+    if(!connected){
+        bridge('connectVpn');
+    } else {
+        bridge('disconnectVpn');
+    }
+}
+
+// ====== Вызовы из Android (Dart) ======
+function onConnected(data){
+    connected = true;
+    document.getElementById('state').textContent='Подключено';
+    document.getElementById('shield').textContent='🔒';
+    document.getElementById('connect').textContent='ОТКЛЮЧИТЬ';
+    const msg=document.getElementById('msgVpn');
+    msg.className='msg ok'; msg.textContent='VPN подключён';
+    seconds=0; mb=0;
+    if(timer) clearInterval(timer);
+    timer=setInterval(()=>{
+        seconds++; mb+=Math.random()*1.7;
+        const h=String(Math.floor(seconds/3600)).padStart(2,'0');
+        const m=String(Math.floor(seconds/60)%60).padStart(2,'0');
+        const s=String(seconds%60).padStart(2,'0');
+        document.getElementById('time').textContent=h+':'+m+':'+s;
+        document.getElementById('traffic').textContent=mb.toFixed(1)+' MB';
+    },1000);
+}
+
+function onDisconnected(){
+    connected = false;
+    document.getElementById('state').textContent='Не подключено';
+    document.getElementById('shield').textContent='🛡️';
+    document.getElementById('connect').textContent='ПОДКЛЮЧИТЬ';
+    const msg=document.getElementById('msgVpn');
+    msg.className=''; msg.textContent='';
+    if(timer) clearInterval(timer);
+    seconds=0; mb=0;
+    document.getElementById('time').textContent='00:00:00';
+    document.getElementById('traffic').textContent='0 MB';
+}
+
+function onError(data){
+    const msg=document.getElementById('msgVpn');
+    msg.className='msg err';
+    msg.textContent = data && data.message ? data.message : 'Ошибка';
+}
+
+function pay(){
+    bridge('openBot');
+}
+</script>
+</body></html>
