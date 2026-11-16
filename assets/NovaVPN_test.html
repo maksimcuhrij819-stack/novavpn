@@ -19,8 +19,8 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 <section id="vpn" class="page active">
 <div class="card center"><div class="shield" id="shield">🛡️</div><div class="state" id="state">Не подключено</div><div class="muted" id="chosen">🇳🇱 Амстердам · 32 ms</div></div>
 <div class="card">
-<div class="muted">Telegram ID</div>
-<input class="input" type="text" id="tgId" placeholder="Введите ваш Telegram ID" inputmode="numeric">
+<input type="hidden" id="tgId">
+ placeholder="Введите ваш Telegram ID" inputmode="numeric">
 <button class="buy" style="width:100%;margin-top:4px" onclick="saveTgId()">Сохранить ID</button>
 <div class="msg" id="msgId"></div>
 <div class="muted" style="margin-top:14px">Выберите сервер</div>
@@ -72,9 +72,10 @@ function saveTgId(){
     msg.className='msg ok'; msg.textContent='ID сохранён: '+tg;
 }
 
-function toggle(){
-    if(!connected){
-        bridge('connectVpn');
+function toggle() {
+    if (!connected) {
+        const tgId = getOrCreateTgId();
+        bridge('connectVpn', { tg_id: tgId });
     } else {
         bridge('disconnectVpn');
     }
@@ -122,5 +123,23 @@ function onError(data){
 function pay(){
     bridge('openBot');
 }
+
+// Генерируем или загружаем ID устройства
+function getOrCreateTgId() {
+    let tgId = localStorage.getItem('novavpn_device_id');
+    if (!tgId) {
+        tgId = 'dev_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+        localStorage.setItem('novavpn_device_id', tgId);
+    }
+    return tgId;
+}
+
+// При загрузке страницы сохраняем ID в скрытое поле
+document.addEventListener('DOMContentLoaded', function() {
+    const tgIdField = document.getElementById('tgId');
+    if (tgIdField) {
+        tgIdField.value = getOrCreateTgId();
+    }
+});
 </script>
 </body></html>
