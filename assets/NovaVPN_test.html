@@ -13,7 +13,10 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 .msg.ok{background:#163b2a;color:#6be7a5;display:block}
 .msg.err{background:#3b1616;color:#e76b6b;display:block}
 </style></head><body><div class="app">
-<header><div class="logo">Nova<span>VPN</span></div><select><option>🇷🇺 Русский</option><option>🇬🇧 English</option></select></header>
+<header><div class="logo">Nova<span>VPN</span></div><select id="langSelect" onchange="changeLang(this.value)">
+    <option value="ru">🇷🇺 Русский</option>
+    <option value="en">🇬🇧 English</option>
+</select></header>
 <div class="tabs"><button class="tab active" onclick="tab('vpn',this)">VPN</button><button class="tab" onclick="tab('sub',this)">💳 Подписка</button></div>
 
 <section id="vpn" class="page active">
@@ -24,7 +27,7 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 <button class="buy" style="width:100%;margin-top:4px" onclick="saveTgId()">Сохранить ID</button>
 <div class="msg" id="msgId"></div>
 <div class="muted" style="margin-top:14px">Выберите сервер</div>
-<button class="server selected" onclick="pick(this,'🇳🇱 Амстердам · 32 ms')"><span>🇳🇱 Амстердам</span><b>32 ms</b></button>
+<button class="server selected" onclick="pick(this,'🇩🇪 Германия · 32 ms')"><span>🇩🇪 Германия</span><b>32 ms</b></button>
 <button class="server" onclick="pick(this,'🇷🇺 Санкт-Петербург · 28 ms')"><span>🇷🇺 Санкт-Петербург</span><b>28 ms</b></button>
 <button class="connect" id="connect" onclick="toggle()">ПОДКЛЮЧИТЬ</button>
 <div class="stats"><div class="stat">Время<b id="time">00:00:00</b></div><div class="stat">Трафик<b id="traffic">0 MB</b></div></div>
@@ -43,6 +46,58 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 
 </div>
 <script>
+const translations = {
+    ru: {
+        connect: "ПОДКЛЮЧИТЬ",
+        disconnect: "ОТКЛЮЧИТЬ",
+        connected: "Подключено",
+        notConnected: "Не подключено",
+        pay: "ОПЛАТИТЬ",
+        server: "Выберите сервер"
+    },
+
+    en: {
+        connect: "CONNECT",
+        disconnect: "DISCONNECT",
+        connected: "Connected",
+        notConnected: "Disconnected",
+        pay: "PAY",
+        server: "Select server"
+    }
+};
+
+function changeLang(lang) {
+    const t = translations[lang];
+
+    if (!t) return;
+
+    const elements = {
+        connect: t.connect,
+        disconnect: t.disconnect,
+        connected: t.connected,
+        notConnected: t.notConnected,
+        pay: t.pay,
+        server: t.server
+    };
+
+    for (const id in elements) {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.textContent = elements[id];
+        }
+    }
+
+    localStorage.setItem("language", lang);
+}
+
+// Восстанавливаем сохранённый язык
+document.addEventListener("DOMContentLoaded", function() {
+    const savedLang = localStorage.getItem("language") || "ru";
+
+    document.getElementById("langSelect").value = savedLang;
+    changeLang(savedLang);
+});
 let connected=false,seconds=0,mb=0,timer=null;
 
 function bridge(action, data){
